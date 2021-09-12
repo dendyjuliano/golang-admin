@@ -11,7 +11,7 @@ import (
 func AllRole(c *fiber.Ctx) error {
 	var roles []models.Role
 
-	database.DB.Find(&roles)
+	database.DB.Preload("Permissions").Find(&roles)
 
 	return c.JSON(roles)
 }
@@ -29,14 +29,15 @@ func CreateRole(c *fiber.Ctx) error {
 
 	for i, permissionId := range list {
 		id, _ := strconv.Atoi(permissionId.(string))
+
 		permissions[i] = models.Permission{
 			Id: uint(id),
 		}
 	}
 
 	role := models.Role{
-		Name:       roleDto["name"].(string),
-		Permission: permissions,
+		Name:        roleDto["name"].(string),
+		Permissions: permissions,
 	}
 
 	database.DB.Create(&role)
@@ -51,7 +52,7 @@ func GetRole(c *fiber.Ctx) error {
 		Id: uint(id),
 	}
 
-	database.DB.Find(&role)
+	database.DB.Preload("Permissions").Find(&role)
 
 	return c.JSON(role)
 }
@@ -70,7 +71,8 @@ func UpdateRole(c *fiber.Ctx) error {
 	permissions := make([]models.Permission, len(list))
 
 	for i, permissionId := range list {
-		id, _ := strconv.Atoi(permissionId.(string))
+		id, _ := permissionId.(float64)
+
 		permissions[i] = models.Permission{
 			Id: uint(id),
 		}
@@ -81,9 +83,9 @@ func UpdateRole(c *fiber.Ctx) error {
 	database.DB.Table("role_permissions").Where("role_id", id).Delete(&result)
 
 	role := models.Role{
-		Id:         uint(id),
-		Name:       roleDto["name"].(string),
-		Permission: permissions,
+		Id:          uint(id),
+		Name:        roleDto["name"].(string),
+		Permissions: permissions,
 	}
 
 	database.DB.Model(&role).Updates(role)
